@@ -20,8 +20,17 @@ export const siteConfig = {
   tagline: "Homeopathic Medical Clinic",
   legalBusinessType: "Homeopathic Medical Clinic",
 
-  // Replace with the live production domain once assigned.
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.auracureclinic.in",
+  /**
+   * Replace with the live production domain once assigned.
+   *
+   * `|| ` rather than `?? `, and trimmed first: a host that defines
+   * NEXT_PUBLIC_SITE_URL with an empty value (Vercel does this when the
+   * variable exists in project settings but has no value) hands us "", which
+   * `??` would happily keep — and "" then breaks `new URL()` in layout.tsx at
+   * build time, and silently corrupts every canonical, sitemap and schema.org
+   * URL that interpolates this. Only a non-blank value may override.
+   */
+  url: process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://www.auracureclinic.in",
 
   address: {
     street: "Opposite Jain School & Vardhman School, Bajaj Road",
