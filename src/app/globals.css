@@ -1,0 +1,282 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Motion tokens. One easing curve and one duration scale across the whole
+   site, so a card lifting on hover and a section arriving on scroll feel like
+   the same hand. --ease-soft decelerates gently (nothing snaps); --ease-entrance
+   overshoots very slightly, which reads as arriving rather than appearing.
+   --------------------------------------------------------------------------- */
+:root {
+  --ease-soft: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-entrance: cubic-bezier(0.16, 0.84, 0.44, 1);
+  --dur-fast: 200ms;
+  --dur-base: 620ms;
+  --dur-slow: 900ms;
+}
+
+/* Page-load entrance for above-the-fold content. Transform-only variants exist
+   because animating opacity on the LCP element delays the LCP measurement —
+   the headline rises without ever being invisible. */
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes riseInOpaque {
+  from {
+    transform: translate3d(0, 16px, 0);
+  }
+  to {
+    transform: none;
+  }
+}
+
+.animate-rise {
+  animation: riseIn var(--dur-base) var(--ease-entrance) both;
+}
+
+/* For the LCP headline: moves, never fades, so first paint is unaffected. */
+.animate-rise-opaque {
+  animation: riseInOpaque 520ms var(--ease-entrance) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-rise-opaque {
+    animation: none;
+  }
+}
+
+/* Continuous left-drift for the results strip. The track holds the cards
+   twice over, so translating exactly -50% lands on an identical frame and the
+   loop is seamless. Hover/focus pauses it via animation-play-state. */
+@keyframes marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-marquee {
+  animation: marquee var(--marquee-duration, 70s) linear infinite;
+  will-change: transform;
+}
+
+/* Pointing at the strip — or tabbing into a card — freezes it so the case
+   under the cursor can actually be read. Written here rather than as a
+   group-hover utility because Tailwind wraps hover variants in
+   `@media (hover: hover)`, which silently drops the pause on some browsers. */
+.marquee-pause:hover .animate-marquee,
+.marquee-pause:focus-within .animate-marquee {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* No drift for anyone who asked for less motion — the strip becomes a
+     plain horizontal scroller they drive themselves. */
+  .animate-marquee {
+    animation: none;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+:root {
+  /* Surfaces */
+  --color-ivory: #f8f5ee;
+  --color-ivory-muted: #f1ebdd;
+  --color-surface: #ffffff;
+
+  /* Brand / botanical green */
+  --color-forest-950: #0f1f18;
+  --color-forest-900: #14281f;
+  --color-forest-800: #1c3a2b;
+  --color-forest-700: #245038;
+  --color-forest-600: #2f6a48;
+  --color-forest-500: #3f8460;
+
+  /* Ink */
+  --color-charcoal: #22221d;
+  --color-charcoal-soft: #55564c;
+  /* Meta/caption ink. Darkened from #837f6f so small text clears WCAG AA
+     (4.5:1) on the darkest surface it sits on, ivory-muted. */
+  --color-charcoal-faint: #6e6b5d;
+
+  /* Accent (muted warm gold). Darkened from #9c7239 for the same reason —
+     it is used for small uppercase eyebrow labels. */
+  --color-accent-600: #886432;
+  --color-accent-500: #b0844d;
+  --color-accent-100: #f0e3cd;
+
+  /* Utility */
+  --color-border: #e4dcc8;
+  --color-border-strong: #cfc4a7;
+  --color-error: #a3402a;
+  --color-error-bg: #f7e9e4;
+  --color-success: #2f6a48;
+
+  /* Above-the-fold budget. The hero sizes itself to whatever is left after the
+     sticky header and the credentials bar, so header + hero + credentials add
+     up to exactly one screen and nothing sits half-cut at the fold. */
+  --header-h: 4.25rem;
+  --trustbar-h: 8.25rem;
+
+  --shadow-card: 0 1px 2px rgba(34, 34, 29, 0.04), 0 8px 24px -12px rgba(34, 34, 29, 0.12);
+  --shadow-card-hover: 0 2px 4px rgba(34, 34, 29, 0.06), 0 16px 32px -12px rgba(34, 34, 29, 0.16);
+}
+
+@theme inline {
+  --color-ivory: var(--color-ivory);
+  --color-ivory-muted: var(--color-ivory-muted);
+  --color-surface: var(--color-surface);
+
+  --color-forest-950: var(--color-forest-950);
+  --color-forest-900: var(--color-forest-900);
+  --color-forest-800: var(--color-forest-800);
+  --color-forest-700: var(--color-forest-700);
+  --color-forest-600: var(--color-forest-600);
+  --color-forest-500: var(--color-forest-500);
+
+  --color-charcoal: var(--color-charcoal);
+  --color-charcoal-soft: var(--color-charcoal-soft);
+  --color-charcoal-faint: var(--color-charcoal-faint);
+
+  --color-accent-600: var(--color-accent-600);
+  --color-accent-500: var(--color-accent-500);
+  --color-accent-100: var(--color-accent-100);
+
+  --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+  --color-error: var(--color-error);
+  --color-error-bg: var(--color-error-bg);
+  --color-success: var(--color-success);
+
+  /* Satoshi 600/700 for headings, Inter 400/500 for body. */
+  --font-heading: var(--font-satoshi);
+  --font-sans: var(--font-inter);
+
+  --container-8xl: 90rem;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background: var(--color-ivory);
+    color: var(--color-charcoal);
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    /* Long unbroken strings (placeholder tokens, URLs, registration numbers)
+       must wrap rather than widen the page — the body never scrolls sideways.
+       `anywhere` rather than `break-word` because only `anywhere` also shrinks
+       a grid/flex item's min-content width, which is what causes the overflow. */
+    overflow-wrap: anywhere;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-heading), ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -0.015em;
+    font-weight: 600;
+    color: var(--color-forest-900);
+  }
+
+  h1 {
+    font-weight: 700;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-forest-600);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  /* Anchors (#services, #doctor, #find-us) rest below the sticky header
+     rather than underneath it. */
+  section[id] {
+    scroll-margin-top: var(--header-h);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .prose-medical {
+    max-width: 68ch;
+  }
+  .prose-medical p {
+    margin-bottom: 1.25em;
+    line-height: 1.75;
+    color: var(--color-charcoal-soft);
+  }
+  .prose-medical h2 {
+    font-size: 1.5rem;
+    margin-top: 2.5em;
+    margin-bottom: 0.75em;
+  }
+  .prose-medical h3 {
+    font-size: 1.15rem;
+    margin-top: 2em;
+    margin-bottom: 0.6em;
+    color: var(--color-charcoal);
+  }
+  .prose-medical ul, .prose-medical ol {
+    margin: 0 0 1.25em 1.25em;
+    padding-left: 0.35em;
+    color: var(--color-charcoal-soft);
+    line-height: 1.75;
+  }
+  .prose-medical ul {
+    list-style: disc;
+  }
+  .prose-medical ol {
+    list-style: decimal;
+  }
+  .prose-medical li {
+    margin-bottom: 0.4em;
+    padding-left: 0.25em;
+  }
+  .prose-medical li::marker {
+    color: var(--color-accent-500);
+  }
+  .prose-medical strong {
+    color: var(--color-charcoal);
+    font-weight: 600;
+  }
+}
