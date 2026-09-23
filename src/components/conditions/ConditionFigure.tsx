@@ -53,7 +53,7 @@ export function ConditionFigure({
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(120% 90% at 78% 12%, rgba(47,106,72,0.13) 0%, transparent 58%), radial-gradient(90% 80% at 12% 92%, rgba(176,132,77,0.12) 0%, transparent 60%)",
+            "radial-gradient(120% 90% at 78% 12%, rgba(23,117,80,0.13) 0%, transparent 58%), radial-gradient(90% 80% at 12% 92%, rgba(247,183,2,0.12) 0%, transparent 60%)",
         }}
       />
       <div aria-hidden="true" className="absolute inset-0 flex items-center justify-center">

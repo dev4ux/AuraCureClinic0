@@ -68,7 +68,7 @@ export function ServiceHero({
         className="pointer-events-none absolute inset-0 opacity-40"
         style={{
           background:
-            "linear-gradient(104deg, transparent 24%, rgba(63,132,96,0.5) 47%, rgba(63,132,96,0.1) 60%, transparent 75%)",
+            "linear-gradient(104deg, transparent 24%, rgba(42,144,102,0.5) 47%, rgba(42,144,102,0.1) 60%, transparent 75%)",
         }}
       />
       <div

@@ -11,11 +11,11 @@ const base =
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-medium transition-colors duration-[var(--dur-fast)] ease-[var(--ease-soft)] disabled:opacity-50 disabled:cursor-not-allowed";
 
 const variants: Record<Variant, string> = {
-  primary: "bg-forest-800 text-ivory hover:bg-forest-700 active:bg-forest-900",
+  primary: "bg-forest-900 text-ivory hover:bg-forest-800 active:bg-forest-950",
   secondary:
     "bg-transparent text-forest-900 border border-forest-800/30 hover:border-forest-800 hover:bg-forest-800/5",
-  /** Muted gold. For primary actions sitting on the deep forest surfaces, where
-   *  the forest-800 primary would not carry enough contrast. */
+  /** Brand gold. For primary actions sitting on the deep forest surfaces, where
+   *  the forest-900 primary would not carry enough contrast. */
   accent: "bg-accent-500 text-forest-950 hover:bg-accent-100 active:bg-accent-600",
   "outline-light": "bg-transparent text-ivory border border-ivory/40 hover:bg-ivory/10",
   whatsapp: "bg-[#25863f] text-ivory hover:bg-[#1f7235]",

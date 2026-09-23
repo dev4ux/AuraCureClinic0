@@ -104,13 +104,17 @@
   --color-ivory-muted: #f1ebdd;
   --color-surface: #ffffff;
 
-  /* Brand / botanical green */
-  --color-forest-950: #0f1f18;
-  --color-forest-900: #14281f;
-  --color-forest-800: #1c3a2b;
-  --color-forest-700: #245038;
-  --color-forest-600: #2f6a48;
-  --color-forest-500: #3f8460;
+  /* Brand green — built around the clinic's primary colour #012F1E, which is
+     forest-900 (headings, dark sections, primary buttons). Lighter steps keep
+     the same hue for hovers, borders and tints. */
+  --color-forest-950: #001a10;
+  --color-forest-900: #012f1e;
+  --color-forest-800: #023f28;
+  --color-forest-700: #0b5a3b;
+  --color-forest-600: #177550;
+  --color-forest-500: #2a9066;
+  --color-forest-100: #d5e8de;
+  --color-forest-50: #eef6f1;
 
   /* Ink */
   --color-charcoal: #22221d;
@@ -119,11 +123,15 @@
      (4.5:1) on the darkest surface it sits on, ivory-muted. */
   --color-charcoal-faint: #6e6b5d;
 
-  /* Accent (muted warm gold). Darkened from #9c7239 for the same reason —
-     it is used for small uppercase eyebrow labels. */
-  --color-accent-600: #886432;
-  --color-accent-500: #b0844d;
-  --color-accent-100: #f0e3cd;
+  /* Accent — the clinic's secondary colour #F7B702 (the gold of the logo's
+     stethoscope). accent-500 is the true brand gold, for fills, borders, icons
+     and text on the dark green surfaces (8.2:1 on forest-900). It is far too
+     light for text on ivory (1.6:1), so accent-600 is a deepened gold of the
+     same hue for small eyebrow labels on light backgrounds (4.5:1 on
+     ivory-muted). */
+  --color-accent-600: #8a6400;
+  --color-accent-500: #f7b702;
+  --color-accent-100: #fdf0c2;
 
   /* Utility */
   --color-border: #e4dcc8;
@@ -153,6 +161,8 @@
   --color-forest-700: var(--color-forest-700);
   --color-forest-600: var(--color-forest-600);
   --color-forest-500: var(--color-forest-500);
+  --color-forest-100: var(--color-forest-100);
+  --color-forest-50: var(--color-forest-50);
 
   --color-charcoal: var(--color-charcoal);
   --color-charcoal-soft: var(--color-charcoal-soft);
@@ -182,6 +192,11 @@
 
   html {
     scroll-behavior: smooth;
+  }
+
+  ::selection {
+    background: var(--color-accent-500);
+    color: var(--color-forest-950);
   }
 
   body {

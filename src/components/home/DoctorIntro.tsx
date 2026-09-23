@@ -97,7 +97,7 @@ export function DoctorIntro() {
           className="pointer-events-none absolute inset-0 opacity-45"
           style={{
             background:
-              "linear-gradient(104deg, transparent 26%, rgba(63,132,96,0.55) 47%, rgba(63,132,96,0.12) 58%, transparent 74%)",
+              "linear-gradient(104deg, transparent 26%, rgba(42,144,102,0.55) 47%, rgba(42,144,102,0.12) 58%, transparent 74%)",
           }}
         />
         <div
