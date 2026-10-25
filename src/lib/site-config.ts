@@ -21,7 +21,9 @@ export const siteConfig = {
   legalBusinessType: "Homeopathic Medical Clinic",
 
   /**
-   * Replace with the live production domain once assigned.
+   * The live production domain (auracureclinic.com — the .in domain does not
+   * resolve, so a canonical pointing there would tell Google every page lives
+   * somewhere unreachable).
    *
    * `|| ` rather than `?? `, and trimmed first: a host that defines
    * NEXT_PUBLIC_SITE_URL with an empty value (Vercel does this when the
@@ -30,7 +32,7 @@ export const siteConfig = {
    * build time, and silently corrupts every canonical, sitemap and schema.org
    * URL that interpolates this. Only a non-blank value may override.
    */
-  url: process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://www.auracureclinic.in",
+  url: process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://www.auracureclinic.com",
 
   address: {
     street: "Opposite Jain School & Vardhman School, Bajaj Road",
