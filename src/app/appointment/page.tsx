@@ -4,14 +4,15 @@ import { breadcrumbSchema, toJsonLdScript } from "@/lib/schema";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { Container } from "@/components/ui/Container";
 import { TrackedLink } from "@/components/ui/TrackedLink";
-import { PhoneIcon, WhatsAppIcon } from "@/components/ui/icons";
+import { ClockIcon, PhoneIcon, WhatsAppIcon } from "@/components/ui/icons";
+import { ClinicLocationLink } from "@/components/booking/ClinicLocationLink";
 import { ConsultationVisual } from "@/components/booking/ConsultationVisual";
 import { BookingWidget } from "@/components/booking/BookingWidget";
 
 export const metadata: Metadata = {
   title: "Book an Appointment",
   description:
-    "Book a consultation at Aura Cure Clinic, Bajaj Road, opposite Jain School and Vardhman School, Sikar. Open Monday to Saturday, 10 AM to 7 PM. Call or WhatsApp 96108 96996, or send an appointment request online.",
+    "Book an in-clinic visit at Aura Cure Clinic, Bajaj Road, opposite Jain School and Vardhman School, Sikar, or an online video consultation from anywhere in India. Open Monday to Saturday, 10 AM to 7 PM. Call or WhatsApp 96108 96996.",
   alternates: { canonical: "/appointment" },
 };
 
@@ -33,36 +34,46 @@ export default function AppointmentPage() {
       />
       <Breadcrumbs items={crumbs} />
 
-      {/* Full-bleed split, not a card on a page: photograph left, form right,
-          each exactly half the screen. The height is fixed on desktop so the
-          two halves stay square with each other and the panel does not resize
-          under the visitor as the form moves between its two steps — the form
-          column scrolls within that height instead. Below `lg` the halves
-          stack, photograph first, and both take their natural height. */}
-      <section className="border-b border-border bg-surface lg:grid lg:h-[46rem] lg:grid-cols-2 lg:items-stretch">
+      {/* Desktop: photograph left, form right, each half the screen, with a
+          minimum height tall enough for the longest step so the panel does
+          not resize as the patient moves through it. Phone: the photograph
+          is dropped and the form starts right under the page title, so the
+          first choice is on the first screen. */}
+      <section className="border-b border-border bg-surface lg:grid lg:min-h-[46rem] lg:grid-cols-2">
         <ConsultationVisual />
 
-        {/* Lighter ground than the page below, so the form half reads as the
-            panel it is rather than running on into the section after it. */}
-        <div className="flex bg-surface px-5 py-10 sm:px-10 sm:py-12 lg:overflow-y-auto lg:px-12 lg:py-10 xl:px-16">
-          <div className="m-auto w-full max-w-[32rem]">
-            <BookingWidget compact />
+        <div className="px-4 pb-10 pt-6 sm:px-10 sm:py-12 lg:px-12 lg:py-12 xl:px-16">
+          <div className="mx-auto w-full max-w-[32rem]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-accent-600">
+              {siteConfig.doctor.name} · {siteConfig.doctor.credentials}
+            </p>
+            <h1 className="mt-1.5 text-[1.65rem] leading-tight text-forest-900 sm:text-[2rem]">
+              Book an appointment
+            </h1>
+            <p className="mt-1.5 text-[14px] leading-relaxed text-charcoal-soft">
+              In-clinic in Sikar, or online from anywhere in India.
+            </p>
+
+            <div className="mt-6 border-t border-border pt-6">
+              <BookingWidget />
+            </div>
           </div>
         </div>
       </section>
 
-      <Container className="py-14 sm:py-16">
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+      <Container className="py-12 sm:py-16">
+        <h2 className="text-lg text-forest-900 sm:text-xl">Prefer to talk to us?</h2>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 sm:gap-4">
           <TrackedLink
             href={siteConfig.contact.phoneHref}
             event="cta_call_click"
             location="appointment_page"
-            className="flex items-center gap-3 rounded-lg border border-border bg-surface px-5 py-4 transition-colors hover:border-forest-600/50"
+            className="flex min-h-[4.5rem] items-center gap-3 rounded-xl border border-border-strong/60 bg-surface px-4 py-3.5 transition-colors hover:border-forest-600/50"
           >
-            <PhoneIcon className="h-5 w-5 text-forest-700" />
+            <PhoneIcon className="h-5 w-5 shrink-0 text-forest-700" />
             <span>
-              <span className="block text-sm font-medium text-charcoal">Call the clinic</span>
-              <span className="block text-sm text-charcoal-faint">{siteConfig.contact.phoneDisplay}</span>
+              <span className="block text-[14px] font-medium text-charcoal">Call the clinic</span>
+              <span className="block text-[13px] text-charcoal-soft">{siteConfig.contact.phoneDisplay}</span>
             </span>
           </TrackedLink>
 
@@ -71,28 +82,27 @@ export default function AppointmentPage() {
             external
             event="cta_whatsapp_click"
             location="appointment_page"
-            className="flex items-center gap-3 rounded-lg border border-border bg-surface px-5 py-4 transition-colors hover:border-forest-600/50"
+            className="flex min-h-[4.5rem] items-center gap-3 rounded-xl border border-border-strong/60 bg-surface px-4 py-3.5 transition-colors hover:border-forest-600/50"
           >
-            <WhatsAppIcon className="h-5 w-5 text-[#25863f]" />
+            <WhatsAppIcon className="h-5 w-5 shrink-0 text-[#25863f]" />
             <span>
-              <span className="block text-sm font-medium text-charcoal">Message on WhatsApp</span>
-              <span className="block text-sm text-charcoal-faint">{siteConfig.contact.whatsappDisplay}</span>
+              <span className="block text-[14px] font-medium text-charcoal">Message on WhatsApp</span>
+              <span className="block text-[13px] text-charcoal-soft">{siteConfig.contact.whatsappDisplay}</span>
             </span>
           </TrackedLink>
 
-          <dl className="flex flex-col justify-center gap-2 rounded-lg border border-border bg-surface px-5 py-4 text-sm">
-            <div className="flex gap-2">
-              <dt className="shrink-0 font-medium text-charcoal-faint">Timings:</dt>
-              <dd className="text-charcoal-soft">
+          <ClinicLocationLink location="appointment_page" />
+
+          <div className="flex items-start gap-3 rounded-xl border border-border-strong/60 bg-surface px-4 py-3.5">
+            <ClockIcon className="mt-0.5 h-5 w-5 shrink-0 text-forest-700" />
+            <span>
+              <span className="block text-[14px] font-medium text-charcoal">Clinic timings</span>
+              <span className="mt-0.5 block text-[13px] leading-snug text-charcoal-soft">
                 {siteConfig.hours.display}
-                <span className="block text-charcoal-faint">{siteConfig.hours.closedNote}</span>
-              </dd>
-            </div>
-            <div className="flex gap-2">
-              <dt className="shrink-0 font-medium text-charcoal-faint">Address:</dt>
-              <dd className="text-charcoal-soft">{siteConfig.address.full}</dd>
-            </div>
-          </dl>
+              </span>
+              <span className="block text-[13px] text-charcoal-faint">{siteConfig.hours.closedNote}</span>
+            </span>
+          </div>
         </div>
 
         <div className="mt-8 rounded-lg border-l-2 border-error bg-error-bg/60 px-5 py-4">

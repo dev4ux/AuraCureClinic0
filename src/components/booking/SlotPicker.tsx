@@ -3,68 +3,53 @@
 import { useEffect, useState } from "react";
 import {
   MAX_WEEK_OFFSET,
+  clinicHoursLabel,
   getAvailableSlots,
   getWeekDays,
+  isClinicDayOpen,
   monthLabel,
-  paymentOptions,
-  type PaymentPreference,
+  weekOffsetOf,
+  type VisitType,
 } from "@/data/booking";
-import {
-  ArrowRightIcon,
-  CalendarIcon,
-  CardIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  ClockIcon,
-  LockIcon,
-} from "@/components/ui/icons";
+import { siteConfig } from "@/lib/site-config";
+import { ChevronLeftIcon, ChevronRightIcon, ClockIcon } from "@/components/ui/icons";
+import { ContinueButton, FOCUS_RING, StepHeading, chipClass } from "./parts";
 
 export interface SlotSelection {
   dateIso: string | null;
   time: string | null;
-  payment: PaymentPreference | null;
 }
 
-export const emptySlotSelection: SlotSelection = { dateIso: null, time: null, payment: null };
+export const emptySlotSelection: SlotSelection = { dateIso: null, time: null };
 
-export function isSlotComplete(s: SlotSelection): s is { dateIso: string; time: string; payment: PaymentPreference } {
-  return s.dateIso !== null && s.time !== null && s.payment !== null;
+export function isSlotComplete(s: SlotSelection): s is { dateIso: string; time: string } {
+  return s.dateIso !== null && s.time !== null;
 }
-
-const paymentIcons: Record<PaymentPreference, (props: { className?: string }) => React.ReactElement> = {
-  now: CardIcon,
-  before30: ClockIcon,
-};
 
 /**
- * Date, time and payment preference in one panel — the whole slot decision on
- * a single screen rather than three disclosed one after another.
+ * Online: a date and a fixed time slot. In-clinic: a date only — the patient
+ * comes in any time during clinic hours, so instead of slots the step shows
+ * those hours, and the "time" recorded is the clinic's hours.
  *
- * The strip shows one week at a time and pages with the chevrons. It can never
- * page back before today, so a date already gone is unreachable rather than
- * merely discouraged.
- *
- * Nothing here submits. The picker reports a selection upward and renders
- * whatever commit action its parent asks for, so the same panel serves the
- * homepage (slot first, details after) and /appointment (details first, slot
- * after) without either flow being special-cased in here.
+ * The strip shows one week at a time and pages with the chevrons; it can never
+ * page back before today, so a date already gone is unreachable.
  */
 export function SlotPicker({
   value,
   onChange,
-  onConfirm,
-  confirmLabel = "Confirm Consultation",
-  submitting = false,
-  compact = false,
+  onContinue,
+  visitType,
 }: {
   value: SlotSelection;
   onChange: (next: SlotSelection) => void;
-  onConfirm: () => void;
-  confirmLabel?: string;
-  submitting?: boolean;
-  /** Tighter spacing where the panel shares a viewport with other content. */
-  compact?: boolean;
+  onContinue: () => void;
+  visitType: VisitType;
 }) {
+  const inClinic = visitType === "clinic";
+  const isOpen = (iso: string) => (inClinic ? isClinicDayOpen(iso) : getAvailableSlots(iso).length > 0);
+  // Choosing a date is the whole decision for an in-clinic visit.
+  const selectDate = (iso: string) => onChange({ dateIso: iso, time: inClinic ? clinicHoursLabel : null });
+
   /* "Today" is a client-only fact: a server render and a hydration pass can
      land on different calendar days near midnight, and the mismatch would be
      a whole column of wrong dates. Both first renders agree on the skeleton. */
@@ -74,48 +59,38 @@ export function SlotPicker({
     setMounted(true);
 
     /* Open on the first day the clinic actually consults, so the panel arrives
-       showing real times rather than an empty "pick a date first" shelf. Only
-       ever on first mount — after that the choice is the visitor's. */
+       showing real times rather than an empty shelf. Only on first mount. */
     if (value.dateIso === null) {
-      const firstOpen = getWeekDays(0).find((d) => getAvailableSlots(d.iso).length > 0);
-      if (firstOpen) onChange({ ...value, dateIso: firstOpen.iso });
+      const firstOpen = getWeekDays(0).find((d) => isOpen(d.iso));
+      if (firstOpen) selectDate(firstOpen.iso);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const [weekOffset, setWeekOffset] = useState(0);
-
+  // Coming back to this step reopens the week holding the chosen date. (This
+  // step only ever renders after a click, never on the server, so reading
+  // the clock here cannot cause a hydration mismatch.)
+  const [weekOffset, setWeekOffset] = useState(() => (value.dateIso ? weekOffsetOf(value.dateIso) : 0));
   const days = mounted ? getWeekDays(weekOffset) : [];
   const slots = value.dateIso ? getAvailableSlots(value.dateIso) : [];
-  const complete = isSlotComplete(value);
-
-  function pickDate(iso: string) {
-    // A time only means something on the date it was offered for.
-    onChange({ ...value, dateIso: iso, time: null });
-  }
 
   const hint = !value.dateIso
-    ? "Pick a date to see available times"
+    ? inClinic
+      ? "Pick the day you'd like to visit"
+      : "Pick a date to see available times"
     : !value.time
       ? slots.length > 0
         ? "Choose a time that suits you"
         : "No times on this date — try another"
-      : !value.payment
-        ? "Choose when you'd like to pay"
-        : null;
+      : null;
 
   return (
     <div>
-      {/* ---- Date ---- */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className={`font-heading font-semibold text-forest-900 ${compact ? "text-lg" : "text-xl"}`}>
-          Select a date
-        </h3>
-
-        <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1.5 text-[13px] font-medium text-charcoal-soft">
-            <CalendarIcon className="h-4 w-4 text-charcoal-faint" />
-            <span className="tabular-nums">{mounted ? monthLabel(days) : "—"}</span>
+      <div className="flex items-center justify-between gap-3">
+        <StepHeading>{inClinic ? "Select a visit date" : "Select a date"}</StepHeading>
+        <div className="flex items-center gap-1.5">
+          <span className="mr-1 text-[13px] font-medium tabular-nums text-charcoal-soft">
+            {mounted ? monthLabel(days) : "—"}
           </span>
           <WeekNavButton
             label="Previous week"
@@ -134,153 +109,85 @@ export function SlotPicker({
         </div>
       </div>
 
-      <div className={`grid grid-cols-7 gap-1 sm:gap-2 ${compact ? "mt-3" : "mt-4"}`}>
+      <div className="mt-3 grid grid-cols-7 gap-1.5 sm:gap-2">
         {mounted
           ? days.map((d) => {
               const selected = value.dateIso === d.iso;
-              const unavailable = getAvailableSlots(d.iso).length === 0;
+              const unavailable = !isOpen(d.iso);
               return (
                 <button
                   key={d.iso}
                   type="button"
                   aria-pressed={selected}
+                  aria-label={`${d.weekday} ${d.day}${unavailable ? ", closed" : ""}`}
                   disabled={unavailable}
-                  onClick={() => pickDate(d.iso)}
-                  className={`flex flex-col items-center justify-center rounded-xl border transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-600/50 focus-visible:ring-offset-2 focus-visible:ring-offset-ivory ${
-                    compact ? "py-2.5" : "py-3.5"
-                  } ${
+                  onClick={() => selectDate(d.iso)}
+                  className={`flex min-h-[3.75rem] flex-col items-center justify-center rounded-xl border transition-colors duration-200 ${FOCUS_RING} ${
                     selected
-                      ? "border-forest-800 bg-forest-800 text-ivory"
+                      ? "border-forest-900 bg-forest-900 text-ivory"
                       : unavailable
-                        ? "cursor-not-allowed border-transparent bg-ivory-muted/50 text-charcoal-faint/45"
-                        : "border-border-strong/60 bg-surface text-charcoal-soft hover:border-forest-600/50 hover:text-forest-800"
+                        ? "cursor-not-allowed border-transparent bg-ivory-muted/60 text-charcoal-faint/50 line-through"
+                        : "border-border-strong/70 bg-surface text-charcoal-soft hover:border-forest-600/60 hover:text-forest-900"
                   }`}
                 >
-                  <span className="text-[9px] font-medium uppercase tracking-[0.06em] sm:text-[10px] sm:tracking-[0.08em]">{d.weekday}</span>
-                  <span className={`mt-0.5 font-heading font-semibold tabular-nums ${compact ? "text-base" : "text-lg"}`}>
-                    {d.day}
-                  </span>
+                  <span className="text-[10px] font-medium uppercase tracking-[0.06em]">{d.weekday}</span>
+                  <span className="mt-0.5 font-heading text-[17px] font-semibold tabular-nums">{d.day}</span>
                 </button>
               );
             })
           : Array.from({ length: 7 }).map((_, i) => (
-              <div key={i} className={`animate-pulse rounded-xl bg-charcoal/5 ${compact ? "h-[52px]" : "h-[64px]"}`} />
+              <div key={i} className="h-[3.75rem] animate-pulse rounded-xl bg-charcoal/5" />
             ))}
       </div>
 
-      {/* ---- Time ---- */}
-      <div className={compact ? "mt-6" : "mt-8"}>
-        <h3 className={`font-heading font-semibold text-forest-900 ${compact ? "text-lg" : "text-xl"}`}>
-          Select a time
-        </h3>
-
-        <div className={compact ? "mt-3" : "mt-4"}>
-          {!value.dateIso ? (
-            <p className="text-[13.5px] text-charcoal-faint">Pick a date first — times differ by day.</p>
-          ) : slots.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {slots.map((time) => {
-                const selected = value.time === time;
-                return (
+      {inClinic ? (
+        /* No slot to pick — the clinic's hours, said plainly. */
+        <div className="mt-7 flex items-start gap-3 rounded-xl border border-border-strong/60 bg-surface px-4 py-3.5">
+          <ClockIcon className="mt-0.5 h-5 w-5 shrink-0 text-forest-700" />
+          <div>
+            <p className="text-[14px] font-medium text-charcoal">Clinic timings: {clinicHoursLabel}</p>
+            <p className="mt-0.5 text-[13px] leading-snug text-charcoal-soft">
+              Visit any time during these hours on your chosen day — no fixed slot needed.{" "}
+              {siteConfig.hours.closedNote}.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-7">
+          <StepHeading>Select a time</StepHeading>
+          <div className="mt-3">
+            {!value.dateIso ? (
+              <p className="text-[13.5px] text-charcoal-faint">Pick a date first — times differ by day.</p>
+            ) : slots.length > 0 ? (
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                {slots.map((time) => (
                   <button
                     key={time}
                     type="button"
-                    aria-pressed={selected}
+                    aria-pressed={value.time === time}
                     onClick={() => onChange({ ...value, time })}
-                    className={`rounded-full border font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-600/50 focus-visible:ring-offset-2 focus-visible:ring-offset-ivory ${
-                      compact ? "px-4 py-2 text-[13px]" : "px-5 py-2.5 text-[14px]"
-                    } ${
-                      selected
-                        ? "border-forest-800 bg-forest-800 text-ivory"
-                        : "border-border-strong/60 bg-surface text-charcoal-soft hover:border-forest-600/50 hover:text-forest-800"
-                    }`}
+                    className={`${chipClass(value.time === time, "box")} ${FOCUS_RING} tabular-nums`}
                   >
                     {time}
                   </button>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="text-[13.5px] text-charcoal-faint">
-              The clinic isn&rsquo;t consulting on this date. Please choose another.
-            </p>
-          )}
+                ))}
+              </div>
+            ) : (
+              <p className="text-[13.5px] text-charcoal-faint">
+                The clinic isn&rsquo;t consulting on this date. Please choose another.
+              </p>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* ---- Payment preference ---- */}
-      <div className={compact ? "mt-6" : "mt-8"}>
-        <h3 className={`font-heading font-semibold text-forest-900 ${compact ? "text-lg" : "text-xl"}`}>
-          Choose payment option
-        </h3>
-
-        <div className={`grid gap-3 sm:grid-cols-2 ${compact ? "mt-3" : "mt-4"}`}>
-          {paymentOptions.map((option) => {
-            const selected = value.payment === option.id;
-            const Icon = paymentIcons[option.id];
-            return (
-              <button
-                key={option.id}
-                type="button"
-                aria-pressed={selected}
-                onClick={() => onChange({ ...value, payment: option.id })}
-                className={`flex items-center gap-3 rounded-xl border text-left transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-600/50 focus-visible:ring-offset-2 focus-visible:ring-offset-ivory ${
-                  compact ? "px-3.5 py-3" : "px-4 py-4"
-                } ${
-                  selected
-                    ? "border-forest-700 bg-forest-800/[0.07]"
-                    : "border-border-strong/60 bg-surface hover:border-forest-600/50"
-                }`}
-              >
-                <Icon className={`h-5 w-5 shrink-0 ${selected ? "text-forest-700" : "text-charcoal-faint"}`} />
-                <span className={`min-w-0 flex-1 font-medium text-charcoal ${compact ? "text-[13.5px]" : "text-[14.5px]"}`}>
-                  {option.title}
-                </span>
-                {/* Radio drawn rather than native: a native input cannot carry
-                    the filled-ring treatment without being restyled anyway. */}
-                <span
-                  aria-hidden="true"
-                  className={`flex h-[1.15rem] w-[1.15rem] shrink-0 items-center justify-center rounded-full border transition-colors duration-200 ${
-                    selected ? "border-forest-700 bg-forest-800" : "border-border-strong"
-                  }`}
-                >
-                  {selected && <span className="h-[0.4rem] w-[0.4rem] rounded-full bg-ivory" />}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ---- Commit ---- */}
-      <button
-        type="button"
-        disabled={!complete || submitting}
-        onClick={onConfirm}
-        className={`group flex w-full items-center justify-center gap-2.5 rounded-xl font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-600/50 focus-visible:ring-offset-2 focus-visible:ring-offset-ivory ${
-          compact ? "mt-6 py-3.5 text-[14px]" : "mt-8 py-4 text-[15px]"
-        } ${
-          complete && !submitting
-            ? "bg-forest-900 text-ivory hover:bg-forest-800"
-            : "cursor-not-allowed border border-border-strong/60 bg-ivory-muted/50 text-charcoal-faint"
-        }`}
-      >
-        {submitting ? "Sending…" : confirmLabel}
-        {!submitting && (
-          <ArrowRightIcon
-            className={`h-4 w-4 transition-transform duration-200 ${complete ? "group-hover:translate-x-0.5" : ""}`}
-          />
-        )}
-      </button>
-
-      <p className="mt-3 flex items-center justify-center gap-1.5 text-[12px] text-charcoal-faint" aria-live="polite">
-        {hint ?? (
-          <>
-            <LockIcon className="h-3.5 w-3.5" />
-            Your information is secure
-          </>
-        )}
-      </p>
+      <ContinueButton
+        label="Add your details"
+        enabled={isSlotComplete(value)}
+        hint={hint}
+        readyNote="Last step: your name and number."
+        onClick={onContinue}
+      />
     </div>
   );
 }
@@ -302,7 +209,7 @@ function WeekNavButton({
       aria-label={label}
       onClick={onClick}
       disabled={disabled}
-      className="flex h-8 w-8 items-center justify-center rounded-full border border-border-strong/60 bg-surface text-charcoal-soft transition-colors duration-200 hover:border-forest-600/50 hover:text-forest-800 disabled:cursor-not-allowed disabled:border-transparent disabled:bg-ivory-muted/50 disabled:text-charcoal-faint/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-600/50 focus-visible:ring-offset-2 focus-visible:ring-offset-ivory"
+      className={`flex h-10 w-10 items-center justify-center rounded-full border border-border-strong/70 bg-surface text-charcoal-soft transition-colors duration-200 hover:border-forest-600/60 hover:text-forest-900 disabled:cursor-not-allowed disabled:border-transparent disabled:bg-ivory-muted/60 disabled:text-charcoal-faint/40 ${FOCUS_RING}`}
     >
       {children}
     </button>

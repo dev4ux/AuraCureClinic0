@@ -1,114 +1,119 @@
 "use client";
 
-import { useState } from "react";
-import { formatDateLabel, type PaymentPreference } from "@/data/booking";
+import { useRef, useState } from "react";
 import { ProgressIndicator } from "./ProgressIndicator";
+import { VisitStep, emptyVisit, isVisitValid, concernLabel, type VisitValue } from "./VisitStep";
 import { SlotPicker, emptySlotSelection, isSlotComplete, type SlotSelection } from "./SlotPicker";
-import { FillDetailsStep, type DetailsValue } from "./FillDetailsStep";
-import { ConfirmationPanel } from "./ConfirmationPanel";
+import { FillDetailsStep, emptyDetails, isDetailsValid, type DetailsValue } from "./FillDetailsStep";
+import { BookingSummary } from "./BookingSummary";
+import { ConfirmationPanel, type ConfirmedBooking } from "./ConfirmationPanel";
 import { SubmitError } from "./SubmitError";
-import { submitAppointment } from "./submit";
-import { ChevronLeftIcon } from "@/components/ui/icons";
+import { normalisePhone, submitAppointment } from "./submit";
 
-type Phase = "details" | "slot" | "confirmed";
-
-const emptyDetails: DetailsValue = { name: "", phone: "", concern: null, otherText: "", consent: false };
+type Step = 1 | 2 | 3;
 
 /**
- * The booking flow: who you are, then when — and the request is sent at the
- * end of the second step, so nothing is submitted until the slot is chosen.
- *
- * The widget carries no card of its own. It sits in the right half of the
- * booking panel, which supplies the ground it is drawn on; a card inside that
- * would read as a seam.
+ * The booking flow, in the order patients decide it: how they will consult
+ * (in-clinic or online) and what for, then when, then who they are. Each
+ * step is one short screen on a phone; nothing is sent until the last one.
  */
-export function BookingWidget({ compact = false }: { compact?: boolean }) {
-  const [phase, setPhase] = useState<Phase>("details");
+export function BookingWidget() {
+  const [step, setStep] = useState<Step>(1);
+  const [visit, setVisit] = useState<VisitValue>(emptyVisit);
+  const [slot, setSlot] = useState<SlotSelection>(emptySlotSelection);
   const [details, setDetails] = useState<DetailsValue>(emptyDetails);
-  const [selection, setSelection] = useState<SlotSelection>(emptySlotSelection);
-  const [confirmed, setConfirmed] = useState<{ dateIso: string; time: string; payment: PaymentPreference } | null>(null);
+  const [confirmed, setConfirmed] = useState<ConfirmedBooking | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const topRef = useRef<HTMLDivElement>(null);
+
+  /* On a phone the button that moves you on sits at the bottom of the step;
+     the next step must start from its own top, not mid-way down. */
+  function goTo(next: Step | "done") {
+    if (next === "done") setStep(3);
+    else setStep(next);
+    setErrorMessage("");
+    const el = topRef.current;
+    if (el && el.getBoundingClientRect().top < 0) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+
+  // Switching in-clinic ↔ online invalidates what was chosen for the other:
+  // online has fixed slots, in-clinic has clinic hours, and the two offer
+  // different ways to pay. Start those choices afresh.
+  function changeVisit(next: VisitValue) {
+    if (next.visitType !== visit.visitType) {
+      setSlot(emptySlotSelection);
+      setDetails((d) => ({ ...d, payment: null }));
+    }
+    setVisit(next);
+  }
 
   async function submit() {
-    if (!isSlotComplete(selection)) return;
+    if (!isVisitValid(visit) || !isSlotComplete(slot) || !isDetailsValid(details)) return;
+    const booking: ConfirmedBooking = {
+      name: details.name.trim(),
+      phone: normalisePhone(details.phone),
+      visitType: visit.visitType,
+      concern: concernLabel(visit),
+      dateIso: slot.dateIso,
+      time: slot.time,
+      payment: details.payment,
+    };
+
     setSubmitting(true);
     setErrorMessage("");
-
-    const result = await submitAppointment({
-      details,
-      dateIso: selection.dateIso,
-      time: selection.time,
-      payment: selection.payment,
-      location: "appointment_page",
-    });
-
+    const result = await submitAppointment(booking, "appointment_page");
     setSubmitting(false);
+
     if (result.ok) {
-      setConfirmed({ dateIso: selection.dateIso, time: selection.time, payment: selection.payment });
-      setPhase("confirmed");
+      setConfirmed(booking);
+      goTo("done");
       return;
     }
     setErrorMessage(result.message ?? "");
   }
 
   return (
-    <div>
-      {phase !== "confirmed" && (
-        <div className={`border-b border-border ${compact ? "mb-6 pb-5" : "mb-8 pb-6"}`}>
-          <ProgressIndicator step={phase === "details" ? 1 : 2} />
-        </div>
-      )}
-
-      {phase === "details" && (
-        <FillDetailsStep
-          value={details}
-          onChange={setDetails}
-          onContinue={() => setPhase("slot")}
-          compact={compact}
-        />
-      )}
-
-      {phase === "slot" && (
-        <div>
-          {/* Who this booking is for stays on screen, with the way back to
-              correct it — a mistyped number is worth catching here. */}
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border-strong/60 bg-ivory-muted/60 px-4 py-3">
-            <p className="min-w-0 truncate text-[13.5px] text-charcoal">
-              <span className="text-charcoal-faint">Booking for: </span>
-              {details.name}
-            </p>
-            <button
-              type="button"
-              onClick={() => setPhase("details")}
-              className="flex shrink-0 items-center gap-1 text-[13px] font-medium text-forest-700 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-600/50 focus-visible:ring-offset-2"
-            >
-              <ChevronLeftIcon className="h-3.5 w-3.5" />
-              Edit
-            </button>
+    <div ref={topRef} className="scroll-mt-[calc(var(--header-h)+1rem)]">
+      {confirmed ? (
+        <ConfirmationPanel booking={confirmed} />
+      ) : (
+        <>
+          <div className="mb-6">
+            <ProgressIndicator step={step} visitType={visit.visitType} />
           </div>
 
-          <SlotPicker
-            value={selection}
-            onChange={setSelection}
-            onConfirm={submit}
-            confirmLabel={selection.payment === "now" ? "Pay & Confirm Consultation" : "Confirm Consultation"}
-            submitting={submitting}
-            compact={compact}
-          />
+          {step > 1 && visit.visitType && (
+            <BookingSummary
+              visitType={visit.visitType}
+              concern={concernLabel(visit)}
+              dateIso={step === 3 ? (slot.dateIso ?? undefined) : undefined}
+              time={step === 3 ? (slot.time ?? undefined) : undefined}
+              onBack={() => goTo(step === 3 ? 2 : 1)}
+            />
+          )}
 
-          {errorMessage && <SubmitError message={errorMessage} location="booking_widget_error" />}
-        </div>
-      )}
+          {step === 1 && <VisitStep value={visit} onChange={changeVisit} onContinue={() => goTo(2)} />}
 
-      {phase === "confirmed" && confirmed && (
-        <ConfirmationPanel
-          details={details}
-          dateLabel={formatDateLabel(confirmed.dateIso)}
-          time={confirmed.time}
-          paymentPreference={confirmed.payment}
-          compact={compact}
-        />
+          {step === 2 && visit.visitType && (
+            <SlotPicker value={slot} onChange={setSlot} onContinue={() => goTo(3)} visitType={visit.visitType} />
+          )}
+
+          {step === 3 && visit.visitType && (
+            <>
+              <FillDetailsStep
+                value={details}
+                onChange={setDetails}
+                visitType={visit.visitType}
+                onSubmit={submit}
+                submitting={submitting}
+              />
+              {errorMessage && <SubmitError message={errorMessage} location="booking_widget_error" />}
+            </>
+          )}
+        </>
       )}
     </div>
   );

@@ -16,6 +16,8 @@ interface AppointmentPayload {
   phone: string;
   preferredTime: string;
   reason: string;
+  /** "clinic" (offline) or "online". Optional — the /contact form has no such choice. */
+  visitType?: string;
   consent: boolean;
   /** Honeypot — must stay empty; bots typically fill every field. */
   website?: string;
@@ -42,11 +44,14 @@ function validate(body: Partial<AppointmentPayload>) {
   if (reason.length > MAX_LENGTHS.reason) {
     errors.reason = "Please keep this under 600 characters.";
   }
+  if (body.visitType !== undefined && body.visitType !== "clinic" && body.visitType !== "online") {
+    errors.visitType = "Please choose in-clinic or online.";
+  }
   if (body.consent !== true) {
     errors.consent = "Please confirm consent so we can contact you.";
   }
 
-  return { errors, clean: { name, phone, preferredTime, reason } };
+  return { errors, clean: { name, phone, preferredTime, reason, visitType: body.visitType ?? null } };
 }
 
 export async function POST(request: Request) {
